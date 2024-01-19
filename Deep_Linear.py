@@ -68,7 +68,7 @@ class Bayes_Model(PyroModule):
             [Layer((dims[i], dims[i+1]), prior_sd) for i in range(len(dims) - 1)]
         )
 
-        self.combined_weights = False
+        #self.combined_weights = False
         
 
     def forward(self, X, beta, Y=None):
@@ -90,15 +90,19 @@ def generate_inputs(args):
 
 
 def load_true_model(
-        args,
-        weights, # (inp_dim, out_dim) tensor
+        hyperparams,
+        parameters, # (inp_dim, out_dim) tensor
     ):
-    inp_dim = args.true_model_hyperparams['dims'][0]
-    out_dim = args.true_model_hyperparams['dims'][-1]
+    inp_dim = hyperparams['dims'][0]
+    out_dim = hyperparams['dims'][-1]
     true_model = True_Model(inp_dim, out_dim)
 
-    true_model.combined_weights.data = weights
-
+    weights = parameters['weights']
+    if len(weights) != 1:
+        true_model.combined_weights.data = multi_dot(weights)
+    else: 
+        true_model.combined_weights.data = weights[0]
+        
     return true_model
 
 

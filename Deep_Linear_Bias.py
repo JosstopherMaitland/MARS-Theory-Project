@@ -38,10 +38,13 @@ class True_Model(nn.Module):
     ):
         super().__init__()
         self.combined_weights = nn.Parameter(torch.randn((inp_dim, out_dim)))
-        self.final_bias = nn.Parameter(torch.randn((out_dim)))
+        self.combined_bias = nn.Parameter(torch.randn((out_dim)))
 
     def forward(self, X):
-        return X @ self.combined_weights + self.final_bias
+        return X @ self.combined_weights + self.combined_bias
+
+
+
 
 class Layer(PyroModule):
     def __init__(
@@ -59,8 +62,6 @@ class Layer(PyroModule):
         return X @ self.weights + self.bias
 
 
-
-
 class Bayes_Model(PyroModule):
     def __init__(
           self,
@@ -73,7 +74,7 @@ class Bayes_Model(PyroModule):
             [Layer((dims[i], dims[i+1]), prior_sd) for i in range(len(dims) - 1)]
         )
 
-        self.combined_weights = False
+        #self.combined_weights = False
         
 
     def forward(self, X, beta, Y=None):
@@ -90,7 +91,8 @@ class Bayes_Model(PyroModule):
 
 
 
-def calculate_bias(weights, biases):
+
+def combine_weights_bias(weights, biases):
     """
     Parameters:
     - weights (list[tensor]): weights[i] = matrix of weights between layer i and i+1.
@@ -100,16 +102,16 @@ def calculate_bias(weights, biases):
     - tensor: the observations.
     """
 
-    bias = biases[-1]
+    bias = biases[-1].detach().clone()
 
     n = len(weights)
 
-    stacked_weights = weights[-1]
-    for i in range(1, n):
-        bias += torch.matmul(biases[n - i], stacked_weights)
-        stacked_weights = torch.matmul(weights[n-i], stacked_weights)
+    stacked_weights = weights[-1].detach().clone()
+    for i in range(n-2, -1, -1):
+        bias += biases[i] @ stacked_weights
+        stacked_weights = weights[i] @ stacked_weights
 
-    return bias, stacked_weights
+    return stacked_weights, bias
 
 
 
@@ -128,7 +130,9 @@ def load_true_model(
     out_dim = hyperparams['dims'][-1]
     true_model = True_Model(inp_dim, out_dim)
 
-    true_model.combined_weights.data = parameters['weights']
-    true_model.final_bias.data = parameters['bias']
+    combined_params = combine_weights_bias(parameters['weights'], parameters['biases'])
+
+    true_model.combined_weights.data = combined_params[0]
+    true_model.combined_bias.data = combined_params[1]
 
     return true_model

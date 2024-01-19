@@ -304,8 +304,7 @@ class Bayes_Model(PyroModule):
 def generate_inputs(args):
     d_vocab = args.model_hyperparams['d_vocab']
     num_ctx = args.model_hyperparams['num_ctx']
-    return [random.sample(range(d_vocab), num_ctx) for i in range(args.num_data)]
-
+    return [list(np.random.choice(range(d_vocab), size=num_ctx, replace=True)) for i in range(args.num_data)]
 
 
 
