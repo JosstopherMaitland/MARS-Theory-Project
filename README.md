@@ -2,8 +2,8 @@
 
 ## Program Structure
 A file for each model architecture will contain:
-- True model class named True_Model;
-- Bayesian model class Bayes_Model;
+- True model class named `True_Model`;
+- Bayesian model class `Bayes_Model`;
 - genereate_inputs function to generate inpute specific to the architecture;
 - load_true_model function to instantiate a True_Model with the desired hyper and weight parameters;
 - need to add functions for applying transformations to true parameters;
@@ -26,7 +26,10 @@ transformer_model_hyperparams = {
 ```
 deep_linear_hyperparams = {
      'dims' : List, # dims[i] = width of ith layer (includes input and output layers).
-} = deep_linear_bias_hyperparams
+}
+```
+```
+deep_linear_bias_hyperparams = deep_linear_hyperparams
 ```
 
 A file for the Experiment class:
