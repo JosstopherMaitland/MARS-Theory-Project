@@ -30,19 +30,38 @@ import einops
 import random
 
 
-class True_Model(nn.Module):
+class Layer(PyroModule):
     def __init__(
         self,
-        inp_dim : int,
-        out_dim : int,
+        shape: Tuple,
     ):
         super().__init__()
-        self.combined_weights = nn.Parameter(torch.randn((inp_dim, out_dim)))
+        self.weights = nn.Parameter(torch.randn(shape))
+  
+    def forward(self, X):
+        return X @ self.weights
+
+
+class True_Model(PyroModule):
+    def __init__(
+          self,
+          dims : List,
+      ):
+
+        super().__init__()
+        self.layers = nn.ModuleList(
+            [Layer((dims[i], dims[i+1])) for i in range(len(dims) - 1)]
+        )
 
     def forward(self, X):
-        return X @ self.combined_weights
 
-class Layer(PyroModule):
+        for layer in self.layers:
+            X = layer(X)
+
+        return X
+
+
+class Bayes_Layer(PyroModule):
     def __init__(
         self,
         shape: Tuple,
@@ -65,18 +84,11 @@ class Bayes_Model(PyroModule):
 
         super().__init__()
         self.layers = PyroModule[torch.nn.ModuleList](
-            [Layer((dims[i], dims[i+1]), prior_sd) for i in range(len(dims) - 1)]
+            [Bayes_Layer((dims[i], dims[i+1]), prior_sd) for i in range(len(dims) - 1)]
         )
-
-        #self.combined_weights = False
         
 
     def forward(self, X, beta, Y=None):
-
-        """if not self.combined_weights:
-        self.combined_weights = self.weights[0]
-        for i in range(1, len(self.weights)):
-            self.combined_weights = self.combined_weights @ self.weights[i]""" # gotta be a speed up here
 
         for layer in self.layers:
             X = layer(X)
@@ -93,16 +105,13 @@ def load_true_model(
         hyperparams,
         parameters, # (inp_dim, out_dim) tensor
     ):
-    inp_dim = hyperparams['dims'][0]
-    out_dim = hyperparams['dims'][-1]
-    true_model = True_Model(inp_dim, out_dim)
+    dims = hyperparams['dims']
+    true_model = True_Model(dims)
 
-    weights = parameters['weights']
-    if len(weights) != 1:
-        true_model.combined_weights.data = multi_dot(weights)
-    else: 
-        true_model.combined_weights.data = weights[0]
-        
+    #combined_params = combine_weights_bias(parameters['weights'], parameters['biases'])
+    for i in range(len(dims)-1):
+        true_model.layers[i].weights = nn.Parameter(parameters['weights'][i])
+
     return true_model
 
 

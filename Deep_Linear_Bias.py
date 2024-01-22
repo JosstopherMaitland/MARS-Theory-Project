@@ -30,23 +30,41 @@ import einops
 import random
 
 
-class True_Model(nn.Module):
+class Layer(PyroModule):
     def __init__(
         self,
-        inp_dim : int,
-        out_dim : int,
+        shape: Tuple,
     ):
         super().__init__()
-        self.combined_weights = nn.Parameter(torch.randn((inp_dim, out_dim)))
-        self.combined_bias = nn.Parameter(torch.randn((out_dim)))
+        self.weights = nn.Parameter(torch.randn(shape))
+        self.bias = nn.Parameter(torch.randn(shape[-1]))
+  
+    def forward(self, X):
+        return X @ self.weights + self.bias
+
+
+class True_Model(PyroModule):
+    def __init__(
+          self,
+          dims : List,
+      ):
+
+        super().__init__()
+        self.layers = nn.ModuleList(
+            [Layer((dims[i], dims[i+1])) for i in range(len(dims) - 1)]
+        )
 
     def forward(self, X):
-        return X @ self.combined_weights + self.combined_bias
+
+        for layer in self.layers:
+            X = layer(X)
+
+        return X
 
 
 
 
-class Layer(PyroModule):
+class Bayes_Layer(PyroModule):
     def __init__(
         self,
         shape: Tuple,
@@ -71,18 +89,11 @@ class Bayes_Model(PyroModule):
 
         super().__init__()
         self.layers = PyroModule[torch.nn.ModuleList](
-            [Layer((dims[i], dims[i+1]), prior_sd) for i in range(len(dims) - 1)]
+            [Bayes_Layer((dims[i], dims[i+1]), prior_sd) for i in range(len(dims) - 1)]
         )
-
-        #self.combined_weights = False
         
 
     def forward(self, X, beta, Y=None):
-
-        """if not self.combined_weights:
-        self.combined_weights = self.weights[0]
-        for i in range(1, len(self.weights)):
-            self.combined_weights = self.combined_weights @ self.weights[i]""" # gotta be a speed up here
 
         for layer in self.layers:
             X = layer(X)
@@ -91,7 +102,8 @@ class Bayes_Model(PyroModule):
 
 
 
-
+'''
+No Longer Needed
 def combine_weights_bias(weights, biases):
     """
     Parameters:
@@ -99,7 +111,7 @@ def combine_weights_bias(weights, biases):
     - biases (list[tensor]): biases[i] = bias for layer i+1.
 
     Returns:
-    - tensor: the observations.
+    - tuple[tensor]: combined weights and biases.
     """
 
     bias = biases[-1].detach().clone()
@@ -112,7 +124,7 @@ def combine_weights_bias(weights, biases):
         stacked_weights = weights[i] @ stacked_weights
 
     return stacked_weights, bias
-
+'''
 
 
 def generate_inputs(args):
@@ -125,14 +137,13 @@ def load_true_model(
         hyperparams,
         parameters,
     ):
-    
-    inp_dim = hyperparams['dims'][0]
-    out_dim = hyperparams['dims'][-1]
-    true_model = True_Model(inp_dim, out_dim)
 
-    combined_params = combine_weights_bias(parameters['weights'], parameters['biases'])
+    dims = hyperparams['dims']
+    true_model = True_Model(dims)
 
-    true_model.combined_weights.data = combined_params[0]
-    true_model.combined_bias.data = combined_params[1]
+    #combined_params = combine_weights_bias(parameters['weights'], parameters['biases'])
+    for i in range(len(dims)-1):
+        true_model.layers[i].weights = nn.Parameter(parameters['weights'][i])
+        true_model.layers[i].bias = nn.Parameter(parameters['biases'][i])
 
     return true_model

@@ -60,38 +60,6 @@ hyperparams = {
 }
 """
 
-"""
-trans_model_hyperparams = {
-       'num_layers' : 2,
-          'd_vocab' : 10,
-          'd_model' : 128,
-            'd_mlp' : 128*4,
-           'd_head' : 128//4,
-        'num_heads' : 4,
-          'num_ctx' : 3,
-           'act_fn' : None,
-    'use_pos_embed' : True,
-          'use_mlp' : True,
-}
-
-hyperparams = {
-                      'model' : 'transformer',
-    'bayes_model_hyperparams' : trans_model_hyperparams,
-     'true_model_hyperparams' : trans_model_hyperparams,
-          'true_model_params' : {},
-                'num_samples' : 20000,
-                   'num_data' : 100,
-                   'prior_sd' : 1,
-                       'beta' : 1,
-                 'num_warmup' : 10,
-                      'x_max' : 1,
-             'exp_trial_code' : '11',
-           'raw_samples_path' : '',
-             'meta_data_path' : '',
-            'true_param_path' : '',
-}
-"""
-
 class Generate_Deep_Linear_Args(): # and deep linear bias args
     def __init__(self):
         self.depth = random.randint(2, 100)
@@ -102,10 +70,11 @@ class Generate_Deep_Linear_Args(): # and deep linear bias args
         self.true_dl_model_params = {'weights' : self.weights}
         self.true_dlb_model_params = {'weights' : self.weights, 'biases' : self.biases}
 
-        self.X = torch.rand(self.dims[0])
+        self.num_data = random.randint(1000,2000)
+        self.X = torch.rand(self.num_data, self.dims[0])
         
-        self.true_dl_model = Deep_Linear.True_Model(self.dims[0], self.dims[-1])
-        self.true_dlb_model = Deep_Linear_Bias.True_Model(self.dims[0], self.dims[-1])
+        self.true_dl_model = Deep_Linear.True_Model(self.dims)
+        self.true_dlb_model = Deep_Linear_Bias.True_Model(self.dims)
         
         self.prior_sd = random.random()
         self.bayes_dl_model = Deep_Linear.Bayes_Model(self.dims, self.prior_sd)
@@ -135,7 +104,7 @@ class Generate_Transformer_Args():
             'use_mlp': self.use_mlp,
         }
 
-        self.num_data = random.randint(100,200)
+        self.num_data = random.randint(1000,2000)
         self.X = [list(np.random.choice(range(self.d_vocab), size=self.num_ctx, replace=True)) for i in range(self.num_data)]
 
         self.true_model = Transformer.True_Model(**self.hyperparams)
@@ -155,14 +124,7 @@ class Test_Deep_Linear(unittest.TestCase):
         args = self.args
 
         test_model = args.true_dl_model
-        self.assertEqual(list(test_model(args.X).shape), [args.dims[-1]])
-
-    def test_true_model_output(self):
-        args = self.args
-        
-        test_model = args.true_dl_model
-        Y = args.X @ test_model.combined_weights # also checks this works
-        self.assertTrue(bool(torch.eq(test_model(args.X), Y).all()))
+        self.assertEqual(list(test_model(args.X).shape)[-1], args.dims[-1])
 
     def test_bayes_model_parameters(self):
         args = self.args
@@ -185,13 +147,13 @@ class Test_Deep_Linear(unittest.TestCase):
 
         true_params = args.true_dl_model_params
 
-        true_model = args.true_dl_model
-
         loaded_model = Deep_Linear.load_true_model({'dims' : args.dims}, true_params)
 
-        print(true_model(args.X), loaded_model(args.X))
+        X_new = args.X.detach().clone()
+        for i in range(args.depth - 1):
+            X_new = X_new @ true_params['weights'][i]
 
-        self.assertTrue(bool(torch.eq(true_model(args.X), loaded_model(args.X)).all()))
+        self.assertTrue(bool(torch.eq(X_new, loaded_model(args.X)).all()))
 
         
 
@@ -203,14 +165,10 @@ class Test_Deep_Linear_Bias(unittest.TestCase):
     def test_true_model_shape(self):
         args = self.args
         
-        self.assertEqual(list(args.true_dlb_model(args.X).shape), [args.dims[-1]])
+        self.assertEqual(list(args.true_dlb_model(args.X).shape)[-1], args.dims[-1])
 
-    def test_true_model_output(self):
-        args = self.args
-        
-        Y = args.X @ args.true_dlb_model.combined_weights + args.true_dlb_model.combined_bias
-        self.assertTrue(bool(torch.eq(args.true_dlb_model(args.X), Y).all()))
 
+    """
     def test_combine_weights_bias(self):
         args = self.args
         
@@ -224,6 +182,7 @@ class Test_Deep_Linear_Bias(unittest.TestCase):
         
         self.assertTrue(bool(torch.isclose(X_new, Y, atol=1e-06).all())) # weirdness, come back to.
         # how mush does caching the combined bias and weights speed up computation
+    """
 
     def test_bayes_model_parameters(self):
         args = self.args
@@ -244,11 +203,13 @@ class Test_Deep_Linear_Bias(unittest.TestCase):
 
         true_params = args.true_dlb_model_params
 
-        true_model = args.true_dlb_model
-
         loaded_model = Deep_Linear_Bias.load_true_model({'dims' : args.dims}, true_params)
 
-        self.assertTrue(bool(torch.eq(true_model(args.X), loaded_model(args.X)).all()))
+        X_new = args.X.detach().clone()
+        for i in range(args.depth - 1):
+            X_new = X_new @ true_params['weights'][i] + true_params['biases'][i]
+
+        self.assertTrue(bool(torch.eq(X_new, loaded_model(args.X)).all()))
 
 
 
@@ -287,6 +248,9 @@ class Test_Transformer(unittest.TestCase):
         first_call = args.bayes_model.embed.W_E
         second_call = args.bayes_model.embed.W_E
         self.assertFalse(bool(torch.eq(first_call, second_call).all()))
+
+    def test_generate_inputs(self):
+        pass
 
     def test_load_true_model(self):
         args = self.args
