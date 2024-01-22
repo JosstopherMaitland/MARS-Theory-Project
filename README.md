@@ -4,7 +4,7 @@
 A file for each model architecture will contain:
 - True model class named `True_Model`;
 - Bayesian model class `Bayes_Model`;
-       - For reference, the hyperparameters for the different models take the following forms:
+  - For reference, the hyperparameters for the different models take the following forms:
   ```
   transformer_model_hyperparams = {
        'num_layers' : int,
@@ -56,6 +56,6 @@ A file for the Experiment class:
 - instantiates the true model `self.true_model` determined by `self.true_model_hyperparams` and `self.true_model_params`.
 - instantiates the bayesian model `self.bayes_model` determined by `bayes_model_hyperparams` and `self.prior_sd`.
 - `Experiment` has the methods:
-       - `get_dataset` updates `self.X` to the output of `generate_inputs` for the given model in use, and updates `self.Y` to the output of the true model on `self.X`.
-       - `run_HMC_inference` runs the inference on the bayesian model. To be completed.
+  - `get_dataset` updates `self.X` to the output of `generate_inputs` for the given model in use, and updates `self.Y` to the output of the true model on `self.X`.
+  - `run_HMC_inference` runs the inference on the bayesian model. To be completed.
 
