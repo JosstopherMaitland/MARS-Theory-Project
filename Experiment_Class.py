@@ -57,38 +57,6 @@ hyperparams = {
 }
 """
 
-"""
-trans_model_hyperparams = {
-       'num_layers' : 2,
-          'd_vocab' : 10,
-          'd_model' : 128,
-            'd_mlp' : 128*4,
-           'd_head' : 128//4,
-        'num_heads' : 4,
-          'num_ctx' : 3,
-           'act_fn' : None,
-    'use_pos_embed' : True,
-          'use_mlp' : True,
-}
-
-hyperparams = {
-                      'model' : 'transformer',
-    'bayes_model_hyperparams' : trans_model_hyperparams,
-     'true_model_hyperparams' : trans_model_hyperparams,
-          'true_model_params' : {},
-                'num_samples' : 20000,
-                   'num_data' : 100,
-                   'prior_sd' : 1,
-                       'beta' : 1,
-                 'num_warmup' : 10,
-                      'x_max' : 1,
-             'exp_trial_code' : '11',
-           'raw_samples_path' : '',
-             'meta_data_path' : '',
-            'true_param_path' : '',
-}
-"""
-
 class Experiment():
     def __init__(
         self,
