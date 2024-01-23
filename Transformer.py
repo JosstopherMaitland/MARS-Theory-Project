@@ -302,8 +302,8 @@ class Bayes_Model(PyroModule):
 #### HELPER FUNCTIONS ####
 
 def generate_inputs(args):
-    d_vocab = args.model_hyperparams['d_vocab']
-    num_ctx = args.model_hyperparams['num_ctx']
+    d_vocab = args.true_model_hyperparams['d_vocab']
+    num_ctx = args.true_model_hyperparams['num_ctx']
     return [list(np.random.choice(range(d_vocab), size=num_ctx, replace=True)) for i in range(args.num_data)]
 
 
