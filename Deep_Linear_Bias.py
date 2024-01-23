@@ -128,7 +128,7 @@ def combine_weights_bias(weights, biases):
 
 
 def generate_inputs(args):
-    inp_dim = args.model_hyperparams['dims'][0]
+    inp_dim = args.true_model_hyperparams['dims'][0]
     return 2 * args.x_max * torch.rand(args.num_data, inp_dim) - args.x_max
 
 
