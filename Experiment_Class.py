@@ -59,7 +59,7 @@ hyperparams = {
 
 class Experiment():
     def __init__(
-        self,
+    self,
         hyperparams: Dict,
     ):
         # convert the dictionary hyper_params to instance attributes.
@@ -80,10 +80,10 @@ class Experiment():
 
     def run_HMC_inference(self):
         """
-        # Get dataset D_n
+        # Get dataset D_n, stored in self.X and self.Y
         self.get_dataset()
 
-        # Get true param tensors
+        # Get true param tensors (not needed anymore, should be stored in true_model_params)
         #true_params = #
 
         # Run HMC sampler
@@ -114,3 +114,8 @@ class Experiment():
         self.X = self.model.generate_inputs(self)
         out_mean = self.true_model(self.X)
         self.Y = dist.Normal(out_mean, 1).sample() # variance 1 for now (need to be adjusted to vector of same shape as mean?)
+
+    def run_inference(self):
+        kernel = NUTS(self.bayes_model)
+
+
