@@ -87,7 +87,7 @@ class Experiment():
         #true_params = #
 
         # Run HMC sampler
-        #self.samples = #
+        self.samples = self.run_inference()
 
         # Convert samples into dataframe format
         #self.df = #
@@ -117,5 +117,20 @@ class Experiment():
 
     def run_inference(self):
         kernel = NUTS(self.bayes_model)
+        mcmc = MCMC(kernel, num_samples=self.num_samples, warmup_steps=self.num_warmup)
+        mcmc.run(X=self.X, Y=self.Y, beta=self.beta) # Don't know whether not passing prior_sd as arg would cause problem, think not at the moment
+        
+        # these statements can be deleted if not needed
+        print("\n[beta = {}]".format(beta))
+        # print(args.exp_trial_code) # do we need equivalent to Liam's version of exp_trial_code
 
+        # return overview of diagnostics of samples, prob=width of credibility interval, can be adjusted
+        mcmc.summary(prob=0.5)
+
+        return mcmc.get_samples()
+
+    def samples_to_df(self, w0_true=False):
+        pass
+
+        
 
