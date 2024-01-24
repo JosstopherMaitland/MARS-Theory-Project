@@ -285,16 +285,17 @@ class Bayes_Model(PyroModule):
 
         self.use_pos_embed = use_pos_embed
 
-    def forward(self, x, beta, y=None):
+    # changed x to X, y to Y to match notation in Deep_Linear and Deep_Linear_Bias
+    def forward(self, X, beta, Y=None):
         # input: shape(num_ctx), output: shape(num_ctx, d_vocab) (for batch size = 1)
-        x = self.embed(x)
-        x = self.pos_embed(x) if self.use_pos_embed else x
+        X = self.embed(X)
+        X = self.pos_embed(X) if self.use_pos_embed else X
 
         for block in self.blocks:
-            x = block(x)
+            X = block(X)
 
-        x = self.unembed(x)
-        return pyro.sample("obs", dist.Normal(x, 1/np.sqrt(beta)), obs=y)
+        X = self.unembed(X)
+        return pyro.sample("obs", dist.Normal(X, 1/np.sqrt(beta)), obs=Y)
 
 
 
