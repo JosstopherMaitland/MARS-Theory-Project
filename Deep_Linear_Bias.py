@@ -94,7 +94,7 @@ class Bayes_Model(PyroModule):
         
 
     def forward(self, X, beta, Y=None):
-
+        # input: shape(dims[0]), output: shape(dims[-1])
         for layer in self.layers:
             X = layer(X)
 
