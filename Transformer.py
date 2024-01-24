@@ -286,6 +286,7 @@ class Bayes_Model(PyroModule):
         self.use_pos_embed = use_pos_embed
 
     def forward(self, x, beta, y=None):
+        # input: shape(num_ctx), output: shape(num_ctx, d_vocab) (for batch size = 1)
         x = self.embed(x)
         x = self.pos_embed(x) if self.use_pos_embed else x
 
