@@ -116,7 +116,7 @@ class Experiment():
         self.Y = dist.Normal(out_mean, 1).sample() # variance 1 for now (need to be adjusted to vector of same shape as mean?)
 
     def run_inference(self):
-        kernel = NUTS(self.bayes_model)
+        kernel = NUTS(self.bayes_model.forward)
         mcmc = MCMC(kernel, num_samples=self.num_samples, warmup_steps=self.num_warmup)
         mcmc.run(X=self.X, Y=self.Y, beta=self.beta) # Don't know whether not passing prior_sd as arg would cause problem, think not at the moment
         
@@ -130,7 +130,24 @@ class Experiment():
         return mcmc.get_samples()
 
     def samples_to_df(self, w0_true=False):
-        pass
+		# not done yet, still need to fix code!
+		df_dict = {}
+        if w0_true:
+			data_dict = self.true_model_params
+		else:
+			data_dict = self.samples
+			
+		for key, tensor in data_dict.items():
+			tensor_np = tensor.numpy()
+			n = len(tensor)
+			for index, value in np.ndenumerate(tensor_np[0]):
+				new_index = ''.join([str(i) for i in index])
+				dict_key = str(key) + '_' + new_index
+				df_dict[dict_key] = [tensor[i][index] for i in range(n)]
+				
+		return pd.DataFrame(df_dict)
+				
+        
 
         
 
