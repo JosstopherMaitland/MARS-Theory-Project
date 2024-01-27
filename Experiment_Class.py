@@ -130,14 +130,17 @@ class Experiment():
         return mcmc.get_samples()
 
     def samples_to_df(self, w0_true=False):
-		# not done yet, still need to fix code!
 		df_dict = {}
         if w0_true:
 			data_dict = self.true_model_params
+			unsqueeze = True
 		else:
 			data_dict = self.samples
+			unsqueeze = False
 			
 		for key, tensor in data_dict.items():
+			if unsqueeze:
+				tensor = torch.unsqueeze(tensor, 0)
 			tensor_np = tensor.numpy()
 			n = len(tensor)
 			for index, value in np.ndenumerate(tensor_np[0]):
