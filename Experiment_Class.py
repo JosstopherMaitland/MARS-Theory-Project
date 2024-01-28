@@ -144,7 +144,7 @@ class Experiment():
 			tensor_np = tensor.numpy()
 			n = len(tensor)
 			for index, value in np.ndenumerate(tensor_np[0]):
-				new_index = ''.join([str(i) for i in index])
+				new_index = '.'.join([str(i) for i in index])
 				dict_key = str(key) + '_' + new_index
 				df_dict[dict_key] = [tensor[i][index] for i in range(n)]
 				
