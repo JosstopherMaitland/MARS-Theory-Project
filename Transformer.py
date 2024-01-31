@@ -285,7 +285,6 @@ class Bayes_Model(PyroModule):
 
         self.use_pos_embed = use_pos_embed
 
-    # changed x to X, y to Y to match notation in Deep_Linear and Deep_Linear_Bias
     def forward(self, X, beta, Y=None):
         # input: shape(num_ctx), output: shape(num_ctx, d_vocab) (for batch size = 1)
         X = self.embed(X)
@@ -307,13 +306,3 @@ def generate_inputs(args):
     d_vocab = args.true_model_hyperparams['d_vocab']
     num_ctx = args.true_model_hyperparams['num_ctx']
     return [list(np.random.choice(range(d_vocab), size=num_ctx, replace=True)) for i in range(args.num_data)]
-
-
-
-def load_true_model(hyperparams, parameters):
-    transformer = True_Model(**hyperparams)
-
-    for name, param in transformer.named_parameters():
-        param.data = parameters[name]
-
-    return transformer

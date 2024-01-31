@@ -59,7 +59,7 @@ hyperparams = {
 
 class Experiment():
     def __init__(
-    self,
+        self,
         hyperparams: Dict,
     ):
         # convert the dictionary hyper_params to instance attributes.
@@ -73,84 +73,83 @@ class Experiment():
         self.Y = None
         self.samples = None
 
-        self.model = MODELS[self.model] # file name containing all model architecture specific functions
-        self.true_model = self.model.load_true_model(self.true_model_hyperparams,
-                                                     self.true_model_params)
+        self.model = MODELS[self.model] # file containing all model architecture specific functions
+        self.true_model = self.load_true_model()
         self.bayes_model = self.model.Bayes_Model(**self.bayes_model_hyperparams, prior_sd = self.prior_sd)
 
+    def load_true_model(self):
+        true_model = self.model.True_Model(**self.true_model_hyperparams)
+
+        for name, param in true_model.named_parameters():
+            param.data = self.true_model_params[name]
+
+        return true_model
+    
     def run_HMC_inference(self):
-        """
+        start = time.time()
         # Get dataset D_n, stored in self.X and self.Y
         self.get_dataset()
-
-        # Get true param tensors (not needed anymore, should be stored in true_model_params)
-        #true_params = #
-
+        
         # Run HMC sampler
         self.samples = self.run_inference()
 
         # Convert samples into dataframe format
-        #self.df = #
+        self.df = self.samples_to_df()
 
         # Save data
         csv_path = self.raw_samples_path + "/" + self.exp_trial_code + ".csv"
         self.df.to_csv(csv_path, index=True)
 
-        Ln_w_average = self.df['Ln_w'].mean()
+        #Ln_w_average = self.df['Ln_w'].mean()
 
         # Write average Ln_w to CSV
-        meta_data_CSV = pd.read_csv(self.meta_data_path, index_col=[0])
-        meta_data_CSV.loc[meta_data_CSV['exp_code'] == self.exp_trial_code, 'Ln_w'] = Ln_w_average
-        meta_data_CSV.to_csv(self.meta_data_path)
+        #meta_data_CSV = pd.read_csv(self.meta_data_path, index_col=[0])
+        #meta_data_CSV.loc[meta_data_CSV['exp_code'] == self.exp_trial_code, 'Ln_w'] = Ln_w_average
+        #meta_data_CSV.to_csv(self.meta_data_path)
 
         # Save true parameters for plotting
-        true_param_path = self.true_parameters + "/" + self.exp_trial_code + "_w0.csv"
-        #self.true_params_df = #data_collector.samples_to_df(self, w0_true = True)
+        true_param_path = self.true_param_path + "/" + self.exp_trial_code + "_w0.csv"
+        self.true_params_df = self.samples_to_df(w0_true = True)
         self.true_params_df.to_csv(true_param_path)
-        """
-        pass
 
     def get_dataset(self):
         self.X = self.model.generate_inputs(self)
         out_mean = self.true_model(self.X)
-        self.Y = dist.Normal(out_mean, 1).sample() # variance 1 for now (need to be adjusted to vector of same shape as mean?)
+        self.Y = dist.Normal(out_mean, 1).sample() # variance 1 for now
 
-    def run_inference(self):
-        kernel = NUTS(self.bayes_model.forward)
+    def run_inference(self, with_summary=False):
+        kernel = NUTS(self.bayes_model.forward, target_accept_prob = self.target_accept_prob)
         mcmc = MCMC(kernel, num_samples=self.num_samples, warmup_steps=self.num_warmup)
-        mcmc.run(X=self.X, Y=self.Y, beta=self.beta) # Don't know whether not passing prior_sd as arg would cause problem, think not at the moment
+        mcmc.run(X=self.X, beta=self.beta, Y=self.Y) # Don't know whether not passing prior_sd as arg would cause problem, think not at the moment
         
         # these statements can be deleted if not needed
-        print("\n[beta = {}]".format(beta))
-        # print(args.exp_trial_code) # do we need equivalent to Liam's version of exp_trial_code
+        #print("\n[beta = {}]".format(beta))
+        #print(args.exp_trial_code) # do we need equivalent to Liam's version of exp_trial_code
 
         # return overview of diagnostics of samples, prob=width of credibility interval, can be adjusted
-        mcmc.summary(prob=0.5)
+        if with_summary:
+            mcmc.summary(prob=self.summary_prob)
 
         return mcmc.get_samples()
 
     def samples_to_df(self, w0_true=False):
-		df_dict = {}
+        df_dict = {}
         if w0_true:
-			data_dict = self.true_model_params
-			unsqueeze = True
-		else:
-			data_dict = self.samples
-			unsqueeze = False
-			
-		for key, tensor in data_dict.items():
-			if unsqueeze:
-				tensor = torch.unsqueeze(tensor, 0)
-			tensor_np = tensor.numpy()
-			n = len(tensor)
-			for index, value in np.ndenumerate(tensor_np[0]):
-				new_index = '.'.join([str(i) for i in index])
-				dict_key = str(key) + '_' + new_index
-				df_dict[dict_key] = [tensor[i][index] for i in range(n)]
-				
-		return pd.DataFrame(df_dict)
-				
-        
+            data_dict = self.true_model_params
+            unsqueeze = True
+        else:
+            data_dict = self.samples
+            unsqueeze = False
 
-        
+        for key, tensor in data_dict.items():
+            if unsqueeze:
+                tensor = torch.unsqueeze(tensor, 0)
 
+            tensor_np = tensor.numpy()
+            n = len(tensor)
+            for index, value in np.ndenumerate(tensor_np[0]):
+                new_index = '.'.join([str(i) for i in index])
+                dict_key = str(key) + '_' + new_index
+                df_dict[dict_key] = [tensor[i][index] for i in range(n)]
+
+        return pd.DataFrame(df_dict)

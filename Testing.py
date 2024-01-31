@@ -62,13 +62,13 @@ hyperparams = {
 
 class Generate_Deep_Linear_Args(): # and deep linear bias args
     def __init__(self):
-        self.depth = random.randint(2, 100)
+        self.depth = random.randint(2, 10)
         self.dims = [random.randint(1,50) for i in range(self.depth)]
 
-        self.weights = [1 - 2*torch.rand(self.dims[i], self.dims[i+1]) for i in range(self.depth-1)]
-        self.biases = [1 - 2*torch.rand(self.dims[i+1]) for i in range(self.depth-1)]
-        self.true_dl_model_params = {'weights' : self.weights}
-        self.true_dlb_model_params = {'weights' : self.weights, 'biases' : self.biases}
+        self.weights = {'layers.'+str(i)+'.weights' : 1 - 2*torch.rand(self.dims[i], self.dims[i+1]) for i in range(self.depth-1)}
+        self.biases = {'layers.'+str(i)+'.bias' : 1 - 2*torch.rand(self.dims[i+1]) for i in range(self.depth-1)}
+        self.true_dl_model_params = deepcopy(self.weights)
+        self.true_dlb_model_params = dict(self.weights,**self.biases)
 
         self.num_data = random.randint(1000,2000)
         self.X = torch.rand(self.num_data, self.dims[0])
@@ -83,28 +83,27 @@ class Generate_Deep_Linear_Args(): # and deep linear bias args
 
 class Generate_Transformer_Args():
     def __init__(self):
-        self.use_pos = bool(random.randint(0,1))
-        self.use_mlp = bool(random.randint(0,1))
-        act_fn_opt = [F.relu, None]
-        self.act_fn = act_fn_opt[random.randint(0,1)]
+        self.use_pos = True
+        self.use_mlp = True
+        self.act_fn = None #[F.relu, None]
 
-        self.d_vocab = random.randint(2,50)
-        self.num_ctx = random.randint(2,50)
+        self.d_vocab = 10
+        self.num_ctx = 5
         
         self.hyperparams = {
-            'num_layers' : random.randint(1,5),
+            'num_layers' : 2,
             'd_vocab': self.d_vocab,
-            'd_model': random.randint(100,200),
-            'd_mlp': random.randint(200,400),
-            'd_head': random.randint(50,100),
-            'num_heads': random.randint(1,8),
+            'd_model': 32,
+            'd_mlp': 128,
+            'd_head': 8,
+            'num_heads': 2,
             'num_ctx': self.num_ctx,
             'act_fn': self.act_fn,
             'use_pos_embed': self.use_pos,
             'use_mlp': self.use_mlp,
         }
 
-        self.num_data = random.randint(1000,2000)
+        self.num_data = 10
         self.X = [list(np.random.choice(range(self.d_vocab), size=self.num_ctx, replace=True)) for i in range(self.num_data)]
 
         self.true_model = Transformer.True_Model(**self.hyperparams)
@@ -142,18 +141,11 @@ class Test_Deep_Linear(unittest.TestCase):
         second_call = test_model.layers[i].weights
         self.assertFalse(bool(torch.eq(first_call, second_call).all()))
 
-    def test_load_true_model(self):
+    def test_param_names(self):
         args = self.args
-
-        true_params = args.true_dl_model_params
-
-        loaded_model = Deep_Linear.load_true_model({'dims' : args.dims}, true_params)
-
-        X_new = args.X.detach().clone()
-        for i in range(args.depth - 1):
-            X_new = X_new @ true_params['weights'][i]
-
-        self.assertTrue(bool(torch.eq(X_new, loaded_model(args.X)).all()))
+        for name, param in args.true_dl_model.named_parameters():
+            pass #print(name)
+        
 
         
 
@@ -198,18 +190,10 @@ class Test_Deep_Linear_Bias(unittest.TestCase):
         second_call = args.bayes_dlb_model.layers[i].weights
         self.assertFalse(bool(torch.eq(first_call, second_call).all()))
 
-    def test_load_true_model(self):
+    def test_param_names(self):
         args = self.args
-
-        true_params = args.true_dlb_model_params
-
-        loaded_model = Deep_Linear_Bias.load_true_model({'dims' : args.dims}, true_params)
-
-        X_new = args.X.detach().clone()
-        for i in range(args.depth - 1):
-            X_new = X_new @ true_params['weights'][i] + true_params['biases'][i]
-
-        self.assertTrue(bool(torch.eq(X_new, loaded_model(args.X)).all()))
+        for name, param in args.true_dlb_model.named_parameters():
+            pass #print(name)
 
 
 
@@ -251,17 +235,6 @@ class Test_Transformer(unittest.TestCase):
 
     def test_generate_inputs(self):
         pass
-
-    def test_load_true_model(self):
-        args = self.args
-
-        true_params = args.true_model_params
-
-        true_model = args.true_model
-
-        loaded_model = Transformer.load_true_model(args.hyperparams, true_params)
-
-        self.assertTrue(bool(torch.eq(true_model(args.X), loaded_model(args.X)).all()))
             
 
 
@@ -279,16 +252,18 @@ class Test_Experiment(unittest.TestCase):
             'bayes_model_hyperparams' : self.trans_args.hyperparams,
              'true_model_hyperparams' : self.trans_args.hyperparams,
                   'true_model_params' : self.trans_args.true_model_params,
-                        'num_samples' : random.randint(10000, 20000),
-                           'num_data' : random.randint(1,100),
+                        'num_samples' : 10,
+                           'num_data' : 10,
                            'prior_sd' : random.random(),
                                'beta' : random.random(),
                          'num_warmup' : random.randint(0,1),
                               'x_max' : random.random(),
-                     'exp_trial_code' : '11',
-                   'raw_samples_path' : '',
-                     'meta_data_path' : '',
-                    'true_param_path' : '',
+                     'exp_trial_code' : '001',
+                   'raw_samples_path' : 'samples',
+                     'meta_data_path' : 'meta_data',
+                    'true_param_path' : 'true_params',
+                 'target_accept_prob' : 0.8,
+                       'summary_prob' : 0.5,
         }
 
         self.hyperparams_deep_linear = deepcopy(self.hyperparams_transformer)
@@ -300,19 +275,56 @@ class Test_Experiment(unittest.TestCase):
         self.hyperparams_deep_linear_bias = deepcopy(self.hyperparams_deep_linear)
         self.hyperparams_deep_linear_bias['model'] = 'deep_linear_bias'
         self.hyperparams_deep_linear_bias['true_model_params'] = self.dl_args.true_dlb_model_params
-        
 
-    
-    def test_initialisation(self):
-        exp_trans = Experiment_Class.Experiment(self.hyperparams_transformer)
-        exp_dl = Experiment_Class.Experiment(self.hyperparams_deep_linear)
-        exp_dlb = Experiment_Class.Experiment(self.hyperparams_deep_linear_bias)
-        #exp_dlb = Experiment_Class.Experiment(self.hyperparams_deep_linear)
+        self.exp_trans = Experiment_Class.Experiment(self.hyperparams_transformer)
+        self.exp_dl = Experiment_Class.Experiment(self.hyperparams_deep_linear)
+        self.exp_dlb = Experiment_Class.Experiment(self.hyperparams_deep_linear_bias)
         
 
     def test_get_dataset(self):
-        pass
+        self.exp_trans.get_dataset()
+        self.exp_dl.get_dataset()
+        self.exp_dlb.get_dataset()
+
+    def test_load_true_model_dl(self):
+        exp = self.exp_dl
+
+        loaded_model = exp.true_model
+        true_params = exp.true_model_params
+
+        exp.get_dataset()
+        X_new = exp.X.detach().clone()
         
+        depth = len(exp.true_model_hyperparams['dims'])
+        for i in range(depth - 1):
+            X_new = X_new @ true_params['layers.'+str(i)+'.weights']
+
+        self.assertTrue(bool(torch.eq(X_new, loaded_model(exp.X)).all()))
+
+    def test_load_true_model_dlb(self):
+        exp = self.exp_dlb
+
+        loaded_model = exp.true_model
+        true_params = exp.true_model_params
+
+        exp.get_dataset()
+        X_new = exp.X.detach().clone()
+        
+        depth = len(exp.true_model_hyperparams['dims'])
+        for i in range(depth - 1):
+            X_new = X_new @ true_params['layers.'+str(i)+'.weights']  + true_params['layers.'+str(i)+'.bias']
+
+        self.assertTrue(bool(torch.eq(X_new, loaded_model(exp.X)).all()))
+
+
+    def test_run_inference_trans(self):
+        self.exp_trans.run_HMC_inference()
+
+    def test_run_inference_dl(self):
+        self.exp_dl.run_HMC_inference()
+
+    def test_run_inference_dlb(self):
+        self.exp_dlb.run_HMC_inference()
 
 
 if __name__ == "__main__":

@@ -101,19 +101,5 @@ def generate_inputs(args):
     return 2 * args.x_max * torch.rand(args.num_data, inp_dim) - args.x_max
 
 
-def load_true_model(
-        hyperparams,
-        parameters, # (inp_dim, out_dim) tensor
-    ):
-    dims = hyperparams['dims']
-    true_model = True_Model(dims)
-
-    #combined_params = combine_weights_bias(parameters['weights'], parameters['biases'])
-    for i in range(len(dims)-1):
-        true_model.layers[i].weights = nn.Parameter(parameters['weights'][i])
-
-    return true_model
-
-
 def get_true_params(args):
     pass
