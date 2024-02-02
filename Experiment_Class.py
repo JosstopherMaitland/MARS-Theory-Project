@@ -23,6 +23,9 @@ from pyro.nn.module import to_pyro_module_
 from pyro.infer import HMC, MCMC, NUTS
 from pyro.infer.autoguide.initialization import init_to_value, init_to_sample
 
+from devinterp.slt import sample, LLCEstimator
+from devinterp.optim import SGLD
+
 from typing import Any, Callable, Literal, Dict, List, Tuple, Optional, Union
 
 import einops
@@ -120,7 +123,7 @@ class Experiment():
     def run_inference(self, with_summary=False):
         kernel = NUTS(self.bayes_model.forward, target_accept_prob = self.target_accept_prob)
         mcmc = MCMC(kernel, num_samples=self.num_samples, warmup_steps=self.num_warmup)
-        mcmc.run(X=self.X, beta=self.beta, Y=self.Y) # Don't know whether not passing prior_sd as arg would cause problem, think not at the moment
+        mcmc.run(X=self.X, beta=self.beta, Y=self.Y)
         
         # these statements can be deleted if not needed
         #print("\n[beta = {}]".format(beta))
@@ -153,3 +156,30 @@ class Experiment():
                 df_dict[dict_key] = [tensor[i][index] for i in range(n)]
 
         return pd.DataFrame(df_dict)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
